@@ -59,7 +59,7 @@
         </table>
         <h3>Result</h3>
         <p id="status">Waiting to start game ...</p>
-        <p>The winner is: <span id="winner"> </span></p>
+        <p>The winner is: <span id="winner">...</span></p>
       </div>
     </div>
   </div>
@@ -97,9 +97,11 @@
   <!-- Updaters====================================================================================== -->
   <script id="updaters">
 
+    var nowinnertext="...";
+
     function synchroniseOutputCommentary(){
       outputs.status.text(gameModel.status());
-      outputs.winner.text(gameModel.winner()||"...");
+      outputs.winner.text(gameModel.winner()||nowinnertext);
     }
 
     function synchroniseOutputBoard(){

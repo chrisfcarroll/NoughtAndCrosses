@@ -35,7 +35,7 @@ QUnit.test("When you click on a square I record the play and update display", fu
 });
 QUnit.test("I display a win", function (assert) {
   gameModel=new NoughtsAndCrossesGame("O");
-  assert.equal(outputs.winner.text().trim(), "" ,"new game winner is still blank");
+  assert.equal(outputs.winner.text().trim(), nowinnertext ,"new game winner is still blank");
 
   // This forloop results in a won game for O, diagonally from top right to bottom left:
   for(var i=1; i<=7; i++){
