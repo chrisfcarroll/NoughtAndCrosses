@@ -1,0 +1,7 @@
+#theboard td:hover { cursor: crosshair}
+#theboard td {
+  text-align: center;
+  vertical-align: middle;
+  font-size: large;
+  font-weight: bold;
+}
