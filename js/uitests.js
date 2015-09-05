@@ -34,11 +34,11 @@ QUnit.test("UI.When you choose Human and Noughts or Crosses I start a new game",
 });
 
 // -----------------------------------------------------------------------------------
-QUnit.module("UI.Game Play");
+QUnit.module("UI.Human Game Play");
 
 QUnit.test("When you click on a square I record the play and update display", function(assert){
   inputs.chooseHuman.click();
-  startNewGame("O");
+  wiring.startNewGame("O");
   assert.equal(outputs.boardSquares[3][3].text().trim(), "", "Display: Last square starts blank");
   assert.equal(outputs.whosMove.text(),"O");
   inputs.board.find("td").last().click();
@@ -47,7 +47,8 @@ QUnit.test("When you click on a square I record the play and update display", fu
   assert.equal(outputs.whosMove.text(),"X");
 });
 QUnit.test("I display a win", function (assert) {
-  startNewGame("O");
+  inputs.chooseHuman.click();
+  wiring.startNewGame("O");
   assert.notOk(outputs.winner.text().trim() ,"new game winner isn't blank");
 
   // This forloop results in a won game for O, diagonally from top right to bottom left:
@@ -55,8 +56,19 @@ QUnit.test("I display a win", function (assert) {
     inputs.board.find("td:eq(" + (i-1) + ")").click();
   }
   assert.equal(outputs.status.text(), NoughtsAndCrossesBoardModel.messages.finished, "game finished msg shows");
-  assert.equal(outputs.winner.text(), strings.winnertext + "O", "Winner is O");
+  assert.equal(outputs.winner.text(), strings.winneris + "O", "Winner is O");
 
+});
+QUnit.test("I display a draw", function(assert){
+  inputs.chooseHuman.click();
+  wiring.startNewGame("X");
+  // This forloop results in a draw
+  var playOrder= [1,2,3,7,8,9,4,5,6];
+  for(var i=0; i<playOrder.length; i++){
+    inputs.board.find("td:eq(" + ( playOrder[i]-1 ) + ")").click();
+  }
+  assert.equal(outputs.status.text(), NoughtsAndCrossesBoardModel.messages.finished, "game finished msg shows");
+  assert.equal(outputs.winner.text(), strings.itsaDraw);
 });
 
 // -----------------------------------------------------------------------------------

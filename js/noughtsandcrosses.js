@@ -15,6 +15,8 @@ function NoughtsAndCrossesBoardModel(whoMovesFirst){
   }
 
   this.status= function(){return this.state.status;};
+  this.isFinished= function(){return this.state.status==NoughtsAndCrossesBoardModel.messages.finished};
+  this.isDraw= function(){return this.state.winner==NoughtsAndCrossesBoardModel.messages.draw};
 
   this.state.opponentPieces= whoMovesFirst;
   this.whosMove= function(){return this.state.whosMove;};
@@ -45,6 +47,11 @@ function NoughtsAndCrossesBoardModel(whoMovesFirst){
     this.state.winner=winner;
   };
 
+  this.setDraw = function () {
+    this.state.status=NoughtsAndCrossesBoardModel.messages.finished;
+    this.state.winner=NoughtsAndCrossesBoardModel.messages.draw;
+  };
+
   this.checkGameEnd= function(){
     for(var i=1; i<=3; i++){
       var toprow= this.state[i][1];
@@ -68,6 +75,9 @@ function NoughtsAndCrossesBoardModel(whoMovesFirst){
       this.setWinner(topright,0,0,"topright");
       return;
     }
+    if(this.state.movesPlayed==9){
+      this.setDraw();
+    }
   };
 
   this.winner= function(){ return this.state.winner;}
@@ -78,6 +88,7 @@ NoughtsAndCrossesBoardModel.messages={
   started: "Game started",
   inProgress: "Game in progress",
   lastMoveIgnored:"Last move was ignored because illegal",
-  finished:"Finished"
+  finished:"Finished",
+  draw:"Draw"
 };
 

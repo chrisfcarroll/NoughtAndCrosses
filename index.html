@@ -63,6 +63,7 @@
           <label for="crosses"><input name="pieceChoice" type="radio" id="crosses"/> Crosses</label>
         </p>
         <h3>Board</h3>
+        <p id="promptYourMove"></p>
         <table>
          <tbody id="theboard">
           <tr class="row"><td id="d11" class="col-xs-4">&nbsp;</td><td id="d12" class="col-xs-4">&nbsp;</td><td id="d13" class="col-xs-4">&nbsp;</td></tr>
@@ -79,10 +80,23 @@
   </div>
   <!-- /.container -->
 
-  <!-- Dependencies ====================================================================================== -->
+  <!-- Dependencies ================================================================================ -->
   <script src="dependencies/jquery.js"></script>
   <script src="dependencies/bootstrap.min.js"></script>
 
+  <!-- Configuration =============================================================================== -->
+  <script id="configuration">
+    var strings={
+      nowinner: " ",
+      winneris: "The winner is ",
+      promptXmove: "X to move",
+      promptOmove: "O to move",
+      AIisThinking: "AI is thinking",
+      gameOver:"Game Over",
+      itsaDraw:"It's a draw!"
+    };
+
+  </script>
   <!-- Domain ====================================================================================== -->
   <script src="js/noughtsandcrosses.js"></script>
   <script src="js/noughtsandcrossesai.js"></script>
@@ -91,19 +105,22 @@
     var currentAI= new NoughtsAndCrossesAI();
   </script>
 
-  <!-- Inputs and Outputs ====================================================================================== -->
+  <!-- Inputs, Outputs, Wiring ====================================================================================== -->
   <script id="inputs-and-outputs">
    var boardSquares = {
      "1" : { "1": $("#d11"), "2" : $("#d12"), "3" : $("#d13") },
      "2" : { "1": $("#d21"), "2" : $("#d22"), "3" : $("#d23") },
      "3" : { "1": $("#d31"), "2" : $("#d32"), "3" : $("#d33") }
    };
+
    var inputs = {
      board : $("#theboard"),
      chooseNoughtsStarts: $("#noughts"),
      chooseCrossesStarts: $("#crosses"),
+     chooseStartButtons:$("#noughts,#crosses"),
      chooseHuman: $("#human"),
      chooseAI: $("#ai"),
+     choosePlayerButtons: $("#ai,#human"),
      chooseAIPieces: $("#aiPieceChoiceDiv"),
      chooseAINoughts:$("#ainoughts"),
      chooseAICrosses:$("#aicrosses"),
@@ -114,82 +131,85 @@
      getWhoStarts: function(){
        return inputs.chooseCrossesStarts.is(":checked") ? "X" :
               inputs.chooseNoughtsStarts.is(":checked") ? "O" : null;
-     }
+     },
+     getIsAIPlaying:function(){return inputs.chooseAI.is(":checked");}
    };
+
    var outputs = {
      boardSquares : boardSquares,
      status : $("#status"),
      winner : $("#winner"),
-     whosMove : $("#whosMove")
+     whosMove : $("#whosMove"),
+     promptYourMove : $("#promptYourMove")
+   };
+
+   var wiring = {
+
+     clearBoard: function (goingFirst) {
+       gameModel = new NoughtsAndCrossesBoardModel(goingFirst||"O");
+       for (var i = 1; i <= 3; i++)
+         for (var j = 1; j <= 3; j++) {
+           outputs.boardSquares[i][j].text(gameModel.state[i][j])
+         }
+
+       if(inputs.getIsAIPlaying()){
+         currentAI.startPlaying(inputs.getChosenAIPieces(),goingFirst,gameModel, wiring.play)
+       }
+       wiring._synchroniseOutputCommentary();
+     },
+
+     play: function (x, y) {
+       gameModel.play(x, y);
+       outputs.boardSquares[x][y].text(gameModel.state[x][y]);
+       wiring._synchroniseOutputCommentary();
+       wiring.promptToMove();
+     },
+
+     promptToMove : function(){
+       if(gameModel.isFinished()){outputs.promptYourMove.text(strings.gameOver); return;}
+       //
+       if (inputs.getIsAIPlaying() && gameModel.whosMove() == inputs.getChosenAIPieces()) {
+         outputs.promptYourMove.text(strings.AIisThinking);
+         currentAI.promptToMove();
+       } else {
+          outputs.promptYourMove.text( gameModel.whosMove()=="X" ? strings.promptXmove : strings.promptOmove );
+       }
+     },
+
+     startNewGame : function(goingFirst){
+       wiring.clearBoard(goingFirst);
+       wiring.promptToMove();
+     },
+
+     _synchroniseOutputCommentary : function(){
+       outputs.status.text(gameModel.status());
+       outputs.whosMove.text(gameModel.whosMove());
+       outputs.winner.text( (function () {
+           if(gameModel.isDraw()) {return strings.itsaDraw;}
+           //
+           var winner = gameModel.winner();
+           return !!winner ? strings.winneris + winner : strings.nowinner;
+         })()
+       );
+     }
    };
   </script>
 
   <!-- Updaters====================================================================================== -->
   <script id="updaters">
 
-    var strings={
-      nowinnertext: " ",
-      winnertext: "The winner is "
-    };
-
-    function synchroniseOutputCommentary(){
-      outputs.status.text(gameModel.status());
-      function formatWinnerText(){
-        var winner= gameModel.winner();
-        return !!winner ? strings.winnertext + winner : strings.nowinnertext;
-      }
-      outputs.winner.text( formatWinnerText());
-      outputs.whosMove.text(gameModel.whosMove());
-    }
-
-    function clearGameBoardAndView(goingFirst){
-      gameModel= new NoughtsAndCrossesBoardModel(goingFirst);
-      for(var i=1;i<=3;i++)
-      for(var j=1;j<=3;j++){
-        outputs.boardSquares[i][j].text( gameModel.state[i][j] )
-      }
-      synchroniseOutputCommentary();
-    }
-
-    function playMoveAndUpdateOutputBoard(x, y) {
-      gameModel.play(x, y);
-      outputs.boardSquares[x][y].text(gameModel.state[x][y]);
-      synchroniseOutputCommentary();
-      if(inputs.chooseAI.is(":checked") && gameModel.whosMove()==inputs.getChosenAIPieces()){
-        currentAI.promptToMove(); }
-    }
-
-
-    function startNewGame(goingFirst){
-      clearGameBoardAndView(goingFirst);
-      if(inputs.chooseAI.is(":checked")){
-        currentAI.startPlaying( inputs.getChosenAIPieces(), goingFirst, gameModel, playMoveAndUpdateOutputBoard );
-      }
-    }
-
-    inputs.chooseHuman.add(inputs.chooseAI)
-        .click(function(){
-                inputs.chooseCrossesStarts
-                    .add(inputs.chooseNoughtsStarts)
-                    .prop("checked", false);
-              });
-
-    inputs.chooseHuman.click(function(){ inputs.chooseAIPieces.hide();});
-    inputs.chooseAI.click(function(){ inputs.chooseAIPieces.show(); });
-
-    inputs.chooseCrossesStarts.click(function(){ startNewGame("X"); });
-    inputs.chooseNoughtsStarts.click(function(){ startNewGame("O"); });
-
+    inputs.choosePlayerButtons.click(function(){ inputs.chooseStartButtons.prop("checked", false); });
+    inputs.chooseHuman        .click(function(){ inputs.chooseAIPieces.hide(); });
+    inputs.chooseAI           .click(function(){ inputs.chooseAIPieces.show(); });
+    inputs.chooseCrossesStarts.click(function(){ wiring.startNewGame("X"); });
+    inputs.chooseNoughtsStarts.click(function(){ wiring.startNewGame("O"); });
     inputs.board.click(function(evt){
-      if( evt.target.tagName != 'TD'){return;}
-      //
-      var id= evt.target.id;
-      var x= id.substr(1,1);
-      var y= id.substr(2,1);
-      playMoveAndUpdateOutputBoard(x, y);
-    })
+      if (evt.target.tagName == 'TD') {
+        wiring.play( evt.target.id.substr(1, 1), evt.target.id.substr(2, 1) );
+      }
+    });
 
-    ;(function startHumanGameOnPageLoad(){ startNewGame("O"); })();
+    (function startHumanGameOnPageLoad(){ wiring.startNewGame("O"); })();
 
   </script>
 
