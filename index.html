@@ -44,11 +44,24 @@
   <div class="container">
     <div class="row">
       <div class="col-lg-12">
-        <h1>Nought and Crosses</h1>
-        <h3>Choose your weapons:</h3>
+        <h1>Noughts and Crosses</h1>
+        <h3>Who's playing?</h3>
+        <p id="aiChoiceBtns">
+          <label for="human"><input name="opponentChoice" type="radio" id="human" checked/> Human</label>
+          <label for="ai"><input name="opponentChoice" type="radio" id="ai"/> AI</label>
+        </p>
+        <div style="display: none;" id="aiPieceChoiceDiv">
+          <h3>AI plays what?</h3>
+          <p>
+            <label for="ainoughts"><input name="aiPieceChoice" type="radio" id="ainoughts"/> Noughts</label>
+            <label for="aicrosses"><input name="aiPieceChoice" type="radio" id="aicrosses"/> Crosses</label>
+          </p>
+        </div>
+        <h3>Who goes first?</h3>
         <p id="pieceChoiceBtns">
-          <label for="noughts"><input name="pieceChoice" type="radio" id="noughts"/> Noughts</label>
-          <label for="crosses"><input name="pieceChoice" type="radio" id="crosses"/> Crosses</label></p>
+          <label for="noughts"><input name="pieceChoice" type="radio" id="noughts" checked/> Noughts</label>
+          <label for="crosses"><input name="pieceChoice" type="radio" id="crosses"/> Crosses</label>
+        </p>
         <h3>Board</h3>
         <table>
          <tbody id="theboard">
@@ -59,7 +72,8 @@
         </table>
         <h3>Result</h3>
         <p id="status">Waiting to start game ...</p>
-        <p>The winner is: <span id="winner">...</span></p>
+        <p>Who's move: <span id="whosMove"></span></p>
+        <p id="winner"></p>
       </div>
     </div>
   </div>
@@ -71,8 +85,10 @@
 
   <!-- Domain ====================================================================================== -->
   <script src="js/noughtsandcrosses.js"></script>
+  <script src="js/noughtsandcrossesai.js"></script>
   <script>
-    var gameModel= new NoughtsAndCrossesGame("O");
+    var gameModel= new NoughtsAndCrossesBoardModel("O");
+    var currentAI= new NoughtsAndCrossesAI();
   </script>
 
   <!-- Inputs and Outputs ====================================================================================== -->
@@ -84,27 +100,50 @@
    };
    var inputs = {
      board : $("#theboard"),
-     chooseNoughts: $("#noughts"),
-     chooseCrosses: $("#crosses")
+     chooseNoughtsStarts: $("#noughts"),
+     chooseCrossesStarts: $("#crosses"),
+     chooseHuman: $("#human"),
+     chooseAI: $("#ai"),
+     chooseAIPieces: $("#aiPieceChoiceDiv"),
+     chooseAINoughts:$("#ainoughts"),
+     chooseAICrosses:$("#aicrosses"),
+     getChosenAIPieces: function(){
+       return inputs.chooseAICrosses.is(":checked") ? "X" :
+              inputs.chooseAINoughts.is(":checked") ? "O" : null;},
+
+     getWhoStarts: function(){
+       return inputs.chooseCrossesStarts.is(":checked") ? "X" :
+              inputs.chooseNoughtsStarts.is(":checked") ? "O" : null;
+     }
    };
    var outputs = {
      boardSquares : boardSquares,
      status : $("#status"),
-     winner : $("#winner")
+     winner : $("#winner"),
+     whosMove : $("#whosMove")
    };
   </script>
 
   <!-- Updaters====================================================================================== -->
   <script id="updaters">
 
-    var nowinnertext="...";
+    var strings={
+      nowinnertext: " ",
+      winnertext: "The winner is "
+    };
 
     function synchroniseOutputCommentary(){
       outputs.status.text(gameModel.status());
-      outputs.winner.text(gameModel.winner()||nowinnertext);
+      function formatWinnerText(){
+        var winner= gameModel.winner();
+        return !!winner ? strings.winnertext + winner : strings.nowinnertext;
+      }
+      outputs.winner.text( formatWinnerText());
+      outputs.whosMove.text(gameModel.whosMove());
     }
 
-    function synchroniseOutputBoard(){
+    function clearGameBoardAndView(goingFirst){
+      gameModel= new NoughtsAndCrossesBoardModel(goingFirst);
       for(var i=1;i<=3;i++)
       for(var j=1;j<=3;j++){
         outputs.boardSquares[i][j].text( gameModel.state[i][j] )
@@ -112,31 +151,51 @@
       synchroniseOutputCommentary();
     }
 
-    inputs.chooseCrosses.click(function(){
-      gameModel= new NoughtsAndCrossesGame("X");
-      synchroniseOutputBoard();
-    });
-    inputs.chooseNoughts.click(function(){
-      gameModel= new NoughtsAndCrossesGame("O");
-      synchroniseOutputBoard();
-    });
+    function playMoveAndUpdateOutputBoard(x, y) {
+      gameModel.play(x, y);
+      outputs.boardSquares[x][y].text(gameModel.state[x][y]);
+      synchroniseOutputCommentary();
+      if(inputs.chooseAI.is(":checked") && gameModel.whosMove()==inputs.getChosenAIPieces()){
+        currentAI.promptToMove(); }
+    }
+
+
+    function startNewGame(goingFirst){
+      clearGameBoardAndView(goingFirst);
+      if(inputs.chooseAI.is(":checked")){
+        currentAI.startPlaying( inputs.getChosenAIPieces(), goingFirst, gameModel, playMoveAndUpdateOutputBoard );
+      }
+    }
+
+    inputs.chooseHuman.add(inputs.chooseAI)
+        .click(function(){
+                inputs.chooseCrossesStarts
+                    .add(inputs.chooseNoughtsStarts)
+                    .prop("checked", false);
+              });
+
+    inputs.chooseHuman.click(function(){ inputs.chooseAIPieces.hide();});
+    inputs.chooseAI.click(function(){ inputs.chooseAIPieces.show(); });
+
+    inputs.chooseCrossesStarts.click(function(){ startNewGame("X"); });
+    inputs.chooseNoughtsStarts.click(function(){ startNewGame("O"); });
+
     inputs.board.click(function(evt){
       if( evt.target.tagName != 'TD'){return;}
       //
       var id= evt.target.id;
       var x= id.substr(1,1);
       var y= id.substr(2,1);
-      gameModel.play(x,y);
-      outputs.boardSquares[x][y].text(gameModel.state[x][y]);
-      synchroniseOutputCommentary();
+      playMoveAndUpdateOutputBoard(x, y);
     })
+
+    ;(function startHumanGameOnPageLoad(){ startNewGame("O"); })();
 
   </script>
 
 
   <!-- Tests ====================================================================================== -->
-  <div id="qunit" style="display:none"></div>
-  <div id="qunit-fixture" style="display:none"></div>
+  <div id="qunit" style="display:none"></div>  <div id="qunit-fixture" style="display:none"></div>
   <script>
     if(window.location.search.match("debug|test")){
       $('head').append('<link rel="stylesheet" href="dependencies/qunit-1.18.0.css" />');

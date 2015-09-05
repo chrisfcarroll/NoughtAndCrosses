@@ -1,9 +1,9 @@
-function NoughtsAndCrossesGame(whoMovesFirst){
+function NoughtsAndCrossesBoardModel(whoMovesFirst){
   this.state= {
     "1" : { "1": "", "2": "", "3":""},
     "2" : { "1": "", "2": "", "3":""},
     "3" : { "1": "", "2": "", "3":""},
-    status : NoughtsAndCrossesGame.messages.started,
+    status : NoughtsAndCrossesBoardModel.messages.started,
     winner : null
   };
   if(whoMovesFirst=="O"){
@@ -23,24 +23,25 @@ function NoughtsAndCrossesGame(whoMovesFirst){
   this.movesPlayed=function(){return this.state.movesPlayed;};
 
   this.play= function(x,y){
-    if(this.state.status==NoughtsAndCrossesGame.messages.finished){
+    if(this.state.status==NoughtsAndCrossesBoardModel.messages.finished){
       return this;
     }
     if(this.state[x][y] != ""){
-      this.state.status= NoughtsAndCrossesGame.messages.lastMoveIgnored;
+      this.state.status= NoughtsAndCrossesBoardModel.messages.lastMoveIgnored;
       return this;
     }
     //
     this.state[x][y]=this.state.whosMove;
     this.state.whosMove= this.state.whosMove=="X" ? "O" : "X";
     this.state.movesPlayed++;
+    this.state.status=NoughtsAndCrossesBoardModel.messages.inProgress;
     //
     this.checkGameEnd();
     return this;
   };
 
   this.setWinner= function(winner, column, row, diag) {
-    this.state.status=NoughtsAndCrossesGame.messages.finished;
+    this.state.status=NoughtsAndCrossesBoardModel.messages.finished;
     this.state.winner=winner;
   };
 
@@ -73,7 +74,7 @@ function NoughtsAndCrossesGame(whoMovesFirst){
 
 }
 
-NoughtsAndCrossesGame.messages={
+NoughtsAndCrossesBoardModel.messages={
   started: "Game started",
   inProgress: "Game in progress",
   lastMoveIgnored:"Last move was ignored because illegal",
